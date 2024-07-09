@@ -29,7 +29,6 @@ def fetch_medal_tally(df, year, country):
 
     return x
 
-
 def country_year_list(df):
     years = df['Year'].unique().tolist()
     years.sort()
@@ -39,25 +38,31 @@ def country_year_list(df):
     country.sort()
     country.insert(0, 'Overall')
 
-    return years,country
+    return years, country
+
+
+
+
 
 def data_over_time(df,col):
 
-    nations_over_time = df.drop_duplicates(['Year', col])['Year'].value_counts().reset_index().sort_values('index')
-    nations_over_time.rename(columns={'index': 'Edition', 'Year': col}, inplace=True)
+    nations_over_time = df.groupby('Year')[col].unique().reset_index()
+    nations_over_time.rename(columns={'Year': 'Edition', 'No of Countries':'col'},inplace=True)
     return nations_over_time
 
 
-def most_successful(df, sport):
-    temp_df = df.dropna(subset=['Medal'])
 
-    if sport != 'Overall':
-        temp_df = temp_df[temp_df['Sport'] == sport]
+def most_successful_alt(df, sport):
+  temp_df = df.dropna(subset=['Medal'])
 
-    x = temp_df['Name'].value_counts().reset_index().head(15).merge(df, left_on='index', right_on='Name', how='left')[
-        ['index', 'Name_x', 'Sport', 'region']].drop_duplicates('index')
-    x.rename(columns={'index': 'Name', 'Name_x': 'Medals'}, inplace=True)
-    return x
+  if sport != 'Overall':
+    temp_df = temp_df[temp_df['Sport'] == sport]
+
+  x = temp_df.groupby('Name')['Medal'].count().sort_values(ascending=False).reset_index()
+  x = x.merge(df[['Name', 'Sport', 'region']], left_on='Name', right_on='Name', how='left').drop_duplicates('Name')
+  return x
+
+
 
 def yearwise_medal_tally(df,country):
     temp_df = df.dropna(subset=['Medal'])
@@ -67,6 +72,7 @@ def yearwise_medal_tally(df,country):
     final_df = new_df.groupby('Year').count()['Medal'].reset_index()
 
     return final_df
+
 
 def country_event_heatmap(df,country):
     temp_df = df.dropna(subset=['Medal'])
@@ -87,25 +93,3 @@ def most_successful_countrywise(df, country):
         ['index', 'Name_x', 'Sport']].drop_duplicates('index')
     x.rename(columns={'index': 'Name', 'Name_x': 'Medals'}, inplace=True)
     return x
-
-def weight_v_height(df,sport):
-    athlete_df = df.drop_duplicates(subset=['Name', 'region'])
-    athlete_df['Medal'].fillna('No Medal', inplace=True)
-    if sport != 'Overall':
-        temp_df = athlete_df[athlete_df['Sport'] == sport]
-        return temp_df
-    else:
-        return athlete_df
-
-def men_vs_women(df):
-    athlete_df = df.drop_duplicates(subset=['Name', 'region'])
-
-    men = athlete_df[athlete_df['Sex'] == 'M'].groupby('Year').count()['Name'].reset_index()
-    women = athlete_df[athlete_df['Sex'] == 'F'].groupby('Year').count()['Name'].reset_index()
-
-    final = men.merge(women, on='Year', how='left')
-    final.rename(columns={'Name_x': 'Male', 'Name_y': 'Female'}, inplace=True)
-
-    final.fillna(0, inplace=True)
-
-    return final
